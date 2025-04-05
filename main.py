@@ -68,7 +68,19 @@ def analisar_com_huggingface(texto):
 def interpretar_analise(analise, texto):
     texto = texto.lower()
     resposta = analise.lower()
-    return {
+    
+    texto = texto.lower()
+    resposta = analise.lower()
+
+    # Verificações adicionais por palavras-chave simples
+    if any(word in texto for word in ["orçamento aprovado", "orcamento aprovado", "foi aprovado", "cliente aprovou", "aprovado o orçamento", "orçamento aceito"]):
+        resposta += " orçamento: sim"
+    if any(word in texto for word in ["reagendado", "reagendado para", "nova visita", "remarcado", "foi reagendado", "mudança de data"]):
+        resposta += " reagendamento: sim"
+    if any(word in texto for word in ["perda de garantia", "uso incorreto", "garantia excluída", "exclusão de garantia", "sem garantia", "perdeu a garantia"]):
+        resposta += " perda: sim"
+
+
         'perda_garantia': 'perda: sim' in resposta and 'garantia' in texto,
         'orc_aprovado': 'orçamento: sim' in resposta and ('aprov' in texto or 'orcamento' in texto),
         'reagendamento': 'reagendamento: sim' in resposta and 'reagend' in texto

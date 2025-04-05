@@ -34,10 +34,13 @@ def extrair_dados(mensagem):
     dados['reparo'] = re.findall(r'Reparo:(.+?)\n', mensagem)
     dados['peca'] = re.findall(r'Peça:(.*)', mensagem)
 
-    analise_ia = analisar_com_chatgpt(mensagem).lower()
-    dados['perda_garantia'] = 'garantia' in analise_ia or 'exclusão' in analise_ia
-    dados['reagendamento'] = 'reagend' in analise_ia
-    dados['orc_aprovado'] = 'aprovad' in analise_ia
+    analise_ia = analisar_com_chatgpt(mensagem)
+    print("🔍 Análise da IA:", analise_ia)
+
+    texto_baixo = analise_ia.lower()
+    dados['perda_garantia'] = any(p in texto_baixo for p in ['sem garantia', 'exclusão', 'perda de garantia', 'garantia cancelada'])
+    dados['reagendamento'] = 'reagend' in texto_baixo
+    dados['orc_aprovado'] = any(p in texto_baixo for p in ['aprovado', 'aprovada', 'autorizado', 'autorizada'])
     return dados
 
 async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE):

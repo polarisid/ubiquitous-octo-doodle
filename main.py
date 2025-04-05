@@ -4,10 +4,10 @@ from collections import defaultdict
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
 import os
-import openai
+from openai import OpenAI
 
-# Configurar chave da OpenAI
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Cliente da OpenAI com nova API (>=1.0.0)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Variáveis globais
 relatorio = defaultdict(lambda: {'ordens': 0, 'orcamentos': 0, 'garantias': 0, 'reagendamentos': 0})
@@ -15,7 +15,7 @@ mensagens_processadas = []
 
 def analisar_com_chatgpt(texto):
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "Você é um assistente que analisa relatórios técnicos de atendimento e classifica informações como: orçamento aprovado, reagendamento, perda de garantia."},

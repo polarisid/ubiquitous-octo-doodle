@@ -7,7 +7,7 @@ from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filte
 import os
 
 # Lista de técnicos principais válidos
-TECNICOS_PRINCIPAIS = ["Gabriel", "Carlos", "Breno", "Wesley", "Daniel", "Phablo","Lazaro"]
+TECNICOS_PRINCIPAIS = ["Gabriel","gabriel", "Carlos", "carlos", "Breno","breno", "Wesley","wesley",  "Daniel","daniel", "Phablo","phablo","Lazaro"]
 
 HF_TOKEN = os.getenv("HF_API_KEY")
 HF_MODEL_URL = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"

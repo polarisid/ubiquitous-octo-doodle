@@ -1,4 +1,5 @@
 import re
+import json
 import datetime
 import requests
 from collections import defaultdict
@@ -6,14 +7,26 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
 import os
 
+ARQUIVO_JSON = "relatorio_dados.json"
 TECNICOS_PRINCIPAIS = ["Gabriel","gabriel", "Carlos", "carlos", "Breno","breno", "Wesley", "wesley", "Daniel","daniel", "Phablo","Lazaro", "phablo","lazaro"]
 
 HF_TOKEN = os.getenv("HF_API_KEY")
 HF_MODEL_URL = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
-# Agora armazenamos por data
-relatorio_por_data = defaultdict(lambda: defaultdict(lambda: {'ordens': 0, 'orcamentos': 0, 'garantias': 0, 'reagendamentos': 0}))
+# Carregar dados salvos
+def carregar_relatorio():
+    try:
+        with open(ARQUIVO_JSON, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+def salvar_relatorio(data):
+    with open(ARQUIVO_JSON, "w") as f:
+        json.dump(data, f, indent=2)
+
+relatorio_por_data = carregar_relatorio()
 
 def analisar_com_huggingface(texto):
     prompt = (
@@ -76,25 +89,26 @@ async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE)
     dados = extrair_dados(texto)
 
     data_msg = dados['data'][0] if dados['data'] else datetime.date.today().strftime('%d/%m/%Y')
-
     tecnicos_raw = dados['tecnicos'][0] if dados['tecnicos'] else ''
     tecnicos_encontrados = [nome.strip() for nome in tecnicos_raw.split("/") if nome.strip()]
     print("👥 Técnicos identificados:", tecnicos_encontrados)
 
     tecnico_principal = next((nome for nome in tecnicos_encontrados if nome in TECNICOS_PRINCIPAIS), None)
+    if not tecnico_principal:
+        print("⚠️ Nenhum técnico principal reconhecido.")
+        return
 
-    if tecnico_principal:
-        print(f"✅ Técnico principal reconhecido: {tecnico_principal}")
-        relatorio = relatorio_por_data[data_msg]
-        relatorio[tecnico_principal]['ordens'] += 1
-        if dados['orc_aprovado']:
-            relatorio[tecnico_principal]['orcamentos'] += 1
-        if dados['perda_garantia']:
-            relatorio[tecnico_principal]['garantias'] += 1
-        if dados['reagendamento']:
-            relatorio[tecnico_principal]['reagendamentos'] += 1
-    else:
-        print("⚠️ Nenhum técnico principal reconhecido na mensagem.")
+    relatorio = relatorio_por_data.setdefault(data_msg, {})
+    tecnico_data = relatorio.setdefault(tecnico_principal, {'ordens': 0, 'orcamentos': 0, 'garantias': 0, 'reagendamentos': 0})
+    tecnico_data['ordens'] += 1
+    if dados['orc_aprovado']:
+        tecnico_data['orcamentos'] += 1
+    if dados['perda_garantia']:
+        tecnico_data['garantias'] += 1
+    if dados['reagendamento']:
+        tecnico_data['reagendamentos'] += 1
+
+    salvar_relatorio(relatorio_por_data)
 
 async def gerar_relatorio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
@@ -121,5 +135,5 @@ if __name__ == '__main__':
     app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), processar_mensagem))
     app.add_handler(CommandHandler("relatorio", gerar_relatorio))
-    print("🚀 Bot com /relatorio [data] iniciado.")
+    print("🚀 Bot com persistência em JSON iniciado.")
     app.run_polling()

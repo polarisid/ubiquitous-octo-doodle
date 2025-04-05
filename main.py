@@ -8,7 +8,7 @@ from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filte
 import os
 
 ARQUIVO_JSON = "relatorio_dados.json"
-TECNICOS_PRINCIPAIS = ["Gabriel","gabriel", "Carlos", "carlos", "Breno","breno", "Wesley", "wesley", "Daniel","daniel", "Phablo","Lazaro", "phablo","lazaro"]
+TECNICOS_PRINCIPAIS = ["Gabriel", "Carlos", "Breno", "Wesley", "Daniel", "Phablo", "Lazaro"]
 
 HF_TOKEN = os.getenv("HF_API_KEY")
 HF_MODEL_URL = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
@@ -93,7 +93,7 @@ async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE)
     tecnicos_encontrados = [nome.strip() for nome in tecnicos_raw.split("/") if nome.strip()]
     print("👥 Técnicos identificados:", tecnicos_encontrados)
 
-    tecnico_principal = next((nome for nome in tecnicos_encontrados if nome in TECNICOS_PRINCIPAIS), None)
+    tecnico_principal = next((nome for nome in tecnicos_encontrados if nome.lower() in [n.lower() for n in TECNICOS_PRINCIPAIS]), None)
     if not tecnico_principal:
         print("⚠️ Nenhum técnico principal reconhecido.")
         return

@@ -83,7 +83,7 @@ async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     data_msg = dados['data'][0] if dados['data'] else datetime.date.today().strftime('%d/%m/%Y')
     tecnicos_raw = dados['tecnicos'][0] if dados['tecnicos'] else ''
-    tecnicos_encontrados = [nome.strip() for nome in tecnicos_raw.split("/") if nome.strip()]
+    tecnicos_encontrados = [nome.strip() for nome in re.split(r'[,/]', tecnicos_raw) if nome.strip()]
     tecnico_principal = next((nome for nome in tecnicos_encontrados if nome.lower() in [t.lower() for t in TECNICOS_PRINCIPAIS]), None)
     if not tecnico_principal:
         return

@@ -3,6 +3,7 @@ import datetime
 from collections import defaultdict
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
+import os
 
 # Variáveis globais
 relatorio = defaultdict(lambda: {'ordens': 0, 'orcamentos': 0, 'garantias': 0, 'reagendamentos': 0})

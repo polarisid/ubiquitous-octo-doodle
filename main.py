@@ -76,7 +76,7 @@ def interpretar_analise(analise, texto):
 
 def extrair_dados(mensagem):
     dados = {}
-    dados['tecnicos'] = re.findall(r'Tecnico: (.+?)\n', mensagem)
+    dados['tecnicos'] = re.findall(r'Tecnico:\s*(.+?)\\n', mensagem)
     dados['os'] = re.findall(r'OS:\s+(\d+)', mensagem)
     dados['data'] = re.findall(r'Data:\s+(\d+/\d+/\d+)', mensagem)
     dados['reparo'] = re.findall(r'Reparo:(.+?)\n', mensagem)

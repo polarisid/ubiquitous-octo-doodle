@@ -16,6 +16,11 @@ HF_TOKEN = os.getenv("HF_API_KEY")
 HF_MODEL_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
+
+
+
+
+
 def carregar_relatorio():
     try:
         with open(ARQUIVO_JSON, "r") as f:

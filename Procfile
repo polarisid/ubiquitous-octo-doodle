@@ -1,1 +1,2 @@
-python main.py
+[run]
+start = "python main.py"

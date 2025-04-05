@@ -6,7 +6,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
 import os
 
-# Variáveis globais
+# Configuração Hugging Face
 HF_TOKEN = os.getenv("HF_API_KEY")
 HF_MODEL_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
@@ -20,6 +20,7 @@ def analisar_com_huggingface(texto):
         "Responda em formato: perda: sim/não, orçamento: sim/não, reagendamento: sim/não.\n\n"
         + texto
     )
+    print("\n📤 Enviado à IA:\n", prompt)
     try:
         response = requests.post(
             HF_MODEL_URL,
@@ -33,15 +34,17 @@ def analisar_com_huggingface(texto):
         return output
     except Exception as e:
         print("❌ Erro ao chamar Hugging Face:", e)
-        return ""
+        return "erro"
 
 def interpretar_analise(analise):
     texto = analise.lower()
-    return {
+    resultado = {
         'perda_garantia': 'perda: sim' in texto,
         'orc_aprovado': 'orçamento: sim' in texto,
         'reagendamento': 'reagendamento: sim' in texto
     }
+    print("✔️ Interpretação final:", resultado)
+    return resultado
 
 def extrair_dados(mensagem):
     dados = {}
@@ -59,7 +62,7 @@ def extrair_dados(mensagem):
 async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text
     mensagens_processadas.append(texto)
-    print("📥 Mensagem recebida:", texto)
+    print("\n📥 Mensagem recebida:", texto)
     dados = extrair_dados(texto)
     tecnicos = dados['tecnicos'][0].split("/") if dados['tecnicos'] else []
     for tecnico in tecnicos:
@@ -89,5 +92,5 @@ if __name__ == '__main__':
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), processar_mensagem))
     app.add_handler(CommandHandler("relatorio", gerar_relatorio))
 
-    print("🚀 Bot Hugging Face iniciado e aguardando mensagens...")
+    print("🚀 Bot com debug total iniciado e aguardando mensagens...")
     app.run_polling()

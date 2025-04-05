@@ -15,21 +15,15 @@ mensagens_processadas = []
 
 def analisar_com_huggingface(texto):
     prompt = (
-        "Leia o texto a seguir e informe se ele contém:
-"
-        "- Perda de garantia
-"
-        "- Aprovação de orçamento
-"
-        "- Reagendamento
+        """Leia o texto a seguir e informe se ele contém:
+- Perda de garantia
+- Aprovação de orçamento
+- Reagendamento
 
-"
-        "Responda no formato:
-"
-        "perda: sim/não, orçamento: sim/não, reagendamento: sim/não
+Responda no formato:
+perda: sim/não, orçamento: sim/não, reagendamento: sim/não
 
-"
-        f"{texto}"
+""" + texto
     )
     print("\n📤 Enviado à IA:\n", prompt)
     try:
@@ -103,5 +97,5 @@ if __name__ == '__main__':
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), processar_mensagem))
     app.add_handler(CommandHandler("relatorio", gerar_relatorio))
 
-    print("🚀 Bot Falcon Instruct rodando com IA confiável...")
+    print("🚀 Bot Falcon corrigido rodando...")
     app.run_polling()

@@ -15,14 +15,17 @@ mensagens_processadas = []
 
 def analisar_com_huggingface(texto):
     prompt = (
-        """Leia o texto a seguir e informe se ele contém:
+        """Leia o texto abaixo e diga se ele contém, de forma clara e direta:
 - Perda de garantia
 - Aprovação de orçamento
 - Reagendamento
 
+Apenas responda 'sim' para cada item se o texto AFIRMAR com clareza. Caso não haja menção clara, responda 'não'.
+
 Responda no formato:
 perda: sim/não, orçamento: sim/não, reagendamento: sim/não
 
+Texto:
 """ + texto
     )
     print("\n📤 Enviado à IA:\n", prompt)
@@ -41,12 +44,13 @@ perda: sim/não, orçamento: sim/não, reagendamento: sim/não
         print("❌ Erro ao chamar Hugging Face:", e)
         return "erro"
 
-def interpretar_analise(analise):
-    texto = analise.lower()
+def interpretar_analise(analise, texto):
+    texto = texto.lower()
+    resposta = analise.lower()
     resultado = {
-        'perda_garantia': 'perda: sim' in texto,
-        'orc_aprovado': 'orçamento: sim' in texto,
-        'reagendamento': 'reagendamento: sim' in texto
+        'perda_garantia': 'perda: sim' in resposta and 'garantia' in texto,
+        'orc_aprovado': 'orçamento: sim' in resposta and ('aprov' in texto or 'orcamento' in texto),
+        'reagendamento': 'reagendamento: sim' in resposta and 'reagend' in texto
     }
     print("✔️ Interpretação final:", resultado)
     return resultado
@@ -60,7 +64,7 @@ def extrair_dados(mensagem):
     dados['peca'] = re.findall(r'Peça:(.*)', mensagem)
 
     analise_ia = analisar_com_huggingface(mensagem)
-    resultado = interpretar_analise(analise_ia)
+    resultado = interpretar_analise(analise_ia, mensagem)
     dados.update(resultado)
     return dados
 
@@ -97,5 +101,5 @@ if __name__ == '__main__':
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), processar_mensagem))
     app.add_handler(CommandHandler("relatorio", gerar_relatorio))
 
-    print("🚀 Bot Falcon corrigido rodando...")
+    print("🚀 Bot com IA objetiva e regras de segurança iniciado.")
     app.run_polling()

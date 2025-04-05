@@ -22,9 +22,11 @@ def analisar_com_chatgpt(texto):
                 {"role": "user", "content": texto}
             ]
         )
+        print("✅ Resposta da IA recebida com sucesso.")
         return response.choices[0].message.content
     except Exception as e:
-        return f"Erro ao analisar com ChatGPT: {e}"
+        print("❌ Erro ao chamar ChatGPT:", e)
+        return ""
 
 def extrair_dados(mensagem):
     dados = {}
@@ -46,6 +48,7 @@ def extrair_dados(mensagem):
 async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text
     mensagens_processadas.append(texto)
+    print("📥 Mensagem recebida:", texto)
     dados = extrair_dados(texto)
     tecnicos = dados['tecnicos'][0].split("/") if dados['tecnicos'] else []
     for tecnico in tecnicos:
@@ -75,5 +78,5 @@ if __name__ == '__main__':
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), processar_mensagem))
     app.add_handler(CommandHandler("relatorio", gerar_relatorio))
 
-    print("Bot rodando...")
+    print("🚀 Bot iniciado e aguardando mensagens...")
     app.run_polling()

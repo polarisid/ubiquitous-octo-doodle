@@ -47,7 +47,7 @@ async def gerar_relatorio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(texto)
 
 if __name__ == '__main__':
-    app = ApplicationBuilder().token("7606960626:AAE_rLJyrlqoFdJLipx5lpjeMCogFUdxeag").build()
+    app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
 
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), processar_mensagem))
     app.add_handler(CommandHandler("relatorio", gerar_relatorio))

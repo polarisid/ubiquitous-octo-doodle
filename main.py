@@ -1,4 +1,3 @@
-from io import BytesIO
 import re
 import json
 import datetime
@@ -7,13 +6,14 @@ from collections import defaultdict
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
 from fpdf import FPDF
+from io import BytesIO
 import pandas as pd
 import os
 
 ARQUIVO_JSON = "relatorio_dados.json"
 TECNICOS_PRINCIPAIS = ["Gabriel", "Carlos", "Breno", "Wesley", "Daniel", "Phablo", "Lazaro"]
 HF_TOKEN = os.getenv("HF_API_KEY")
-HF_MODEL_URL = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
+HF_MODEL_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
 def carregar_relatorio():
@@ -30,6 +30,10 @@ def salvar_relatorio(data):
 relatorio_por_data = carregar_relatorio()
 
 def analisar_com_huggingface(texto):
+    if not texto or len(texto) < 30:
+        print("⚠️ Texto muito curto, IA não será chamada.")
+        return "erro"
+
     prompt = (
         "Leia o texto abaixo e diga se ele contém, de forma clara e direta:\n"
         "- Perda de garantia\n"
@@ -40,7 +44,6 @@ def analisar_com_huggingface(texto):
         "perda: sim/não, orçamento: sim/não, reagendamento: sim/não\n\n"
         f"Texto:\n{texto}"
     )
-    print("\n📤 Enviado à IA:\n", prompt)
     try:
         response = requests.post(
             HF_MODEL_URL,
@@ -50,6 +53,12 @@ def analisar_com_huggingface(texto):
         )
         result = response.json()
         output = result[0]["generated_text"] if isinstance(result, list) else str(result)
+
+        # Bloqueio de lixo/texto impróprio
+        if any(word in output.lower() for word in ["porn", "xxx", "sex", "nude"]) or len(output) > 500:
+            print("❌ Resposta ignorada por conteúdo suspeito.")
+            return "erro"
+
         print("🔍 Análise da IA:", output)
         return output
     except Exception as e:
@@ -161,5 +170,5 @@ if __name__ == '__main__':
     app.add_handler(CommandHandler("relatorio", gerar_relatorio))
     app.add_handler(CommandHandler("pdf", exportar_pdf))
     app.add_handler(CommandHandler("xls", exportar_xls))
-    print("🚀 Bot com exportação e persistência iniciado.")
+    print("🚀 Bot seguro com IA filtrada e modelo Mistral iniciado.")
     app.run_polling()

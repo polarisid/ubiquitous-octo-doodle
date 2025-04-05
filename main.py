@@ -6,6 +6,9 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
 import os
 
+# Lista de técnicos principais válidos
+TECNICOS_PRINCIPAIS = ["Gabriel", "Carlos", "Breno", "Wesley", "Daniel", "Phablo","Lazaro"]
+
 HF_TOKEN = os.getenv("HF_API_KEY")
 HF_MODEL_URL = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
@@ -71,18 +74,27 @@ def extrair_dados(mensagem):
 async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text
     mensagens_processadas.append(texto)
-    print("\n📥 Mensagem recebida:", texto)
+    print("\n📥 Mensagem recebida:\n", texto)
     dados = extrair_dados(texto)
-    tecnicos = dados['tecnicos'][0].split("/") if dados['tecnicos'] else []
-    for tecnico in tecnicos:
-        tecnico = tecnico.strip()
-        relatorio[tecnico]['ordens'] += 1
+
+    tecnicos_raw = dados['tecnicos'][0] if dados['tecnicos'] else ''
+    tecnicos_encontrados = [nome.strip() for nome in tecnicos_raw.split("/") if nome.strip()]
+    print("👥 Técnicos identificados:", tecnicos_encontrados)
+
+    # Selecionar o primeiro técnico principal válido da lista
+    tecnico_principal = next((nome for nome in tecnicos_encontrados if nome in TECNICOS_PRINCIPAIS), None)
+
+    if tecnico_principal:
+        print(f"✅ Técnico principal reconhecido: {tecnico_principal}")
+        relatorio[tecnico_principal]['ordens'] += 1
         if dados['orc_aprovado']:
-            relatorio[tecnico]['orcamentos'] += 1
+            relatorio[tecnico_principal]['orcamentos'] += 1
         if dados['perda_garantia']:
-            relatorio[tecnico]['garantias'] += 1
+            relatorio[tecnico_principal]['garantias'] += 1
         if dados['reagendamento']:
-            relatorio[tecnico]['reagendamentos'] += 1
+            relatorio[tecnico_principal]['reagendamentos'] += 1
+    else:
+        print("⚠️ Nenhum técnico principal reconhecido na mensagem.")
 
 async def gerar_relatorio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     today = datetime.date.today().strftime('%d/%m/%Y')
@@ -97,9 +109,7 @@ async def gerar_relatorio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 if __name__ == '__main__':
     app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
-
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), processar_mensagem))
     app.add_handler(CommandHandler("relatorio", gerar_relatorio))
-
-    print("🚀 Bot com IA objetiva e regras de segurança iniciado.")
+    print("🚀 Bot com filtro de técnicos principais ativo.")
     app.run_polling()

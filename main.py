@@ -6,9 +6,8 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
 import os
 
-# Configuração Hugging Face
 HF_TOKEN = os.getenv("HF_API_KEY")
-HF_MODEL_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+HF_MODEL_URL = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
 relatorio = defaultdict(lambda: {'ordens': 0, 'orcamentos': 0, 'garantias': 0, 'reagendamentos': 0})
@@ -16,9 +15,21 @@ mensagens_processadas = []
 
 def analisar_com_huggingface(texto):
     prompt = (
-        "Leia o texto abaixo e diga se há perda de garantia, aprovação de orçamento ou reagendamento. "
-        "Responda em formato: perda: sim/não, orçamento: sim/não, reagendamento: sim/não.\n\n"
-        + texto
+        "Leia o texto a seguir e informe se ele contém:
+"
+        "- Perda de garantia
+"
+        "- Aprovação de orçamento
+"
+        "- Reagendamento
+
+"
+        "Responda no formato:
+"
+        "perda: sim/não, orçamento: sim/não, reagendamento: sim/não
+
+"
+        f"{texto}"
     )
     print("\n📤 Enviado à IA:\n", prompt)
     try:
@@ -26,7 +37,7 @@ def analisar_com_huggingface(texto):
             HF_MODEL_URL,
             headers=headers,
             json={"inputs": prompt},
-            timeout=30
+            timeout=60
         )
         result = response.json()
         output = result[0]["generated_text"] if isinstance(result, list) else str(result)
@@ -92,5 +103,5 @@ if __name__ == '__main__':
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), processar_mensagem))
     app.add_handler(CommandHandler("relatorio", gerar_relatorio))
 
-    print("🚀 Bot com debug total iniciado e aguardando mensagens...")
+    print("🚀 Bot Falcon Instruct rodando com IA confiável...")
     app.run_polling()

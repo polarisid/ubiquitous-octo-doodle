@@ -5,16 +5,16 @@ import requests
 from collections import defaultdict
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
+from fpdf import FPDF
+import pandas as pd
 import os
 
 ARQUIVO_JSON = "relatorio_dados.json"
 TECNICOS_PRINCIPAIS = ["Gabriel", "Carlos", "Breno", "Wesley", "Daniel", "Phablo", "Lazaro"]
-
 HF_TOKEN = os.getenv("HF_API_KEY")
 HF_MODEL_URL = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
-# Carregar dados salvos
 def carregar_relatorio():
     try:
         with open(ARQUIVO_JSON, "r") as f:
@@ -30,18 +30,14 @@ relatorio_por_data = carregar_relatorio()
 
 def analisar_com_huggingface(texto):
     prompt = (
-        """Leia o texto abaixo e diga se ele contém, de forma clara e direta:
-- Perda de garantia
-- Aprovação de orçamento
-- Reagendamento
-
-Apenas responda 'sim' para cada item se o texto AFIRMAR com clareza. Caso não haja menção clara, responda 'não'.
-
-Responda no formato:
-perda: sim/não, orçamento: sim/não, reagendamento: sim/não
-
-Texto:
-""" + texto
+        "Leia o texto abaixo e diga se ele contém, de forma clara e direta:\n"
+        "- Perda de garantia\n"
+        "- Aprovação de orçamento\n"
+        "- Reagendamento\n\n"
+        "Apenas responda 'sim' para cada item se o texto AFIRMAR com clareza. Caso não haja menção clara, responda 'não'.\n"
+        "Responda no formato:\n"
+        "perda: sim/não, orçamento: sim/não, reagendamento: sim/não\n\n"
+        f"Texto:\n{texto}"
     )
     print("\n📤 Enviado à IA:\n", prompt)
     try:
@@ -62,13 +58,11 @@ Texto:
 def interpretar_analise(analise, texto):
     texto = texto.lower()
     resposta = analise.lower()
-    resultado = {
+    return {
         'perda_garantia': 'perda: sim' in resposta and 'garantia' in texto,
         'orc_aprovado': 'orçamento: sim' in resposta and ('aprov' in texto or 'orcamento' in texto),
         'reagendamento': 'reagendamento: sim' in resposta and 'reagend' in texto
     }
-    print("✔️ Interpretação final:", resultado)
-    return resultado
 
 def extrair_dados(mensagem):
     dados = {}
@@ -85,17 +79,13 @@ def extrair_dados(mensagem):
 
 async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text
-    print("\n📥 Mensagem recebida:\n", texto)
     dados = extrair_dados(texto)
 
     data_msg = dados['data'][0] if dados['data'] else datetime.date.today().strftime('%d/%m/%Y')
     tecnicos_raw = dados['tecnicos'][0] if dados['tecnicos'] else ''
     tecnicos_encontrados = [nome.strip() for nome in tecnicos_raw.split("/") if nome.strip()]
-    print("👥 Técnicos identificados:", tecnicos_encontrados)
-
-    tecnico_principal = next((nome for nome in tecnicos_encontrados if nome.lower() in [n.lower() for n in TECNICOS_PRINCIPAIS]), None)
+    tecnico_principal = next((nome for nome in tecnicos_encontrados if nome.lower() in [t.lower() for t in TECNICOS_PRINCIPAIS]), None)
     if not tecnico_principal:
-        print("⚠️ Nenhum técnico principal reconhecido.")
         return
 
     relatorio = relatorio_por_data.setdefault(data_msg, {})
@@ -112,17 +102,13 @@ async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def gerar_relatorio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
-    if args:
-        data = args[0]
-    else:
-        data = datetime.date.today().strftime('%d/%m/%Y')
-
+    data = args[0] if args else datetime.date.today().strftime('%d/%m/%Y')
     relatorio = relatorio_por_data.get(data)
     if not relatorio:
         await update.message.reply_text(f"Nenhum atendimento registrado para {data}.")
         return
 
-    texto = f"\U0001F4C5 Relatório - {data}\n\n"
+    texto = f"📅 Relatório - {data}\n\n"
     for tecnico, dados in relatorio.items():
         texto += f"👨‍🔧 {tecnico}\n"
         texto += f"• Ordens finalizadas: {dados['ordens']}\n"
@@ -131,9 +117,46 @@ async def gerar_relatorio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         texto += f"• Reagendamentos: {dados['reagendamentos']}\n\n"
     await update.message.reply_text(texto)
 
+async def exportar_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    data = args[0] if args else datetime.date.today().strftime('%d/%m/%Y')
+    relatorio = relatorio_por_data.get(data)
+    if not relatorio:
+        await update.message.reply_text("Sem dados para exportar.")
+        return
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Relatório - {data}", ln=True, align='C')
+    pdf.ln(10)
+    for tecnico, dados in relatorio.items():
+        pdf.cell(200, 10, txt=f"{tecnico}", ln=True)
+        pdf.cell(200, 10, txt=f"  Ordens: {dados['ordens']} | Orçamentos: {dados['orcamentos']} | Garantias: {dados['garantias']} | Reagendamentos: {dados['reagendamentos']}", ln=True)
+
+    file_path = f"relatorio_{data.replace('/', '-')}.pdf"
+    pdf.output(file_path)
+    await update.message.reply_document(document=open(file_path, "rb"))
+
+async def exportar_xls(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    data = args[0] if args else datetime.date.today().strftime('%d/%m/%Y')
+    relatorio = relatorio_por_data.get(data)
+    if not relatorio:
+        await update.message.reply_text("Sem dados para exportar.")
+        return
+
+    df = pd.DataFrame.from_dict(relatorio, orient='index')
+    df.index.name = "Técnico"
+    file_path = f"relatorio_{data.replace('/', '-')}.xlsx"
+    df.to_excel(file_path)
+    await update.message.reply_document(document=open(file_path, "rb"))
+
 if __name__ == '__main__':
     app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), processar_mensagem))
     app.add_handler(CommandHandler("relatorio", gerar_relatorio))
-    print("🚀 Bot com persistência em JSON iniciado.")
+    app.add_handler(CommandHandler("pdf", exportar_pdf))
+    app.add_handler(CommandHandler("xls", exportar_xls))
+    print("🚀 Bot com exportação e persistência iniciado.")
     app.run_polling()

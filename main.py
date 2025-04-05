@@ -4,10 +4,27 @@ from collections import defaultdict
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
 import os
+import openai
+
+# Configurar chave da OpenAI
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Variáveis globais
 relatorio = defaultdict(lambda: {'ordens': 0, 'orcamentos': 0, 'garantias': 0, 'reagendamentos': 0})
 mensagens_processadas = []
+
+def analisar_com_chatgpt(texto):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "Você é um assistente que analisa relatórios técnicos de atendimento e classifica informações como: orçamento aprovado, reagendamento, perda de garantia."},
+                {"role": "user", "content": texto}
+            ]
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Erro ao analisar com ChatGPT: {e}"
 
 def extrair_dados(mensagem):
     dados = {}
@@ -16,9 +33,11 @@ def extrair_dados(mensagem):
     dados['data'] = re.findall(r'Data:\s+(\d+/\d+/\d+)', mensagem)
     dados['reparo'] = re.findall(r'Reparo:(.+?)\n', mensagem)
     dados['peca'] = re.findall(r'Peça:(.*)', mensagem)
-    dados['perda_garantia'] = bool(re.search(r'garantia|exclusão', mensagem, re.IGNORECASE))
-    dados['reagendamento'] = bool(re.search(r'reagend', mensagem, re.IGNORECASE))
-    dados['orc_aprovado'] = bool(re.search(r'aprovado|aprovad[o|a]', mensagem, re.IGNORECASE))
+
+    analise_ia = analisar_com_chatgpt(mensagem).lower()
+    dados['perda_garantia'] = 'garantia' in analise_ia or 'exclusão' in analise_ia
+    dados['reagendamento'] = 'reagend' in analise_ia
+    dados['orc_aprovado'] = 'aprovad' in analise_ia
     return dados
 
 async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE):

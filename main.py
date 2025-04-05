@@ -1,3 +1,4 @@
+from io import BytesIO
 import re
 import json
 import datetime
@@ -134,9 +135,10 @@ async def exportar_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pdf.cell(200, 10, txt=f"{tecnico}", ln=True)
         pdf.cell(200, 10, txt=f"  Ordens: {dados['ordens']} | Orçamentos: {dados['orcamentos']} | Garantias: {dados['garantias']} | Reagendamentos: {dados['reagendamentos']}", ln=True)
 
-    file_path = f"relatorio_{data.replace('/', '-')}.pdf"
-    pdf.output(file_path)
-    await update.message.reply_document(document=open(file_path, "rb"))
+    pdf_buffer = BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
+    await update.message.reply_document(document=pdf_buffer, filename=f"relatorio_{data.replace('/', '-')}.pdf")
 
 async def exportar_xls(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
@@ -148,9 +150,10 @@ async def exportar_xls(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     df = pd.DataFrame.from_dict(relatorio, orient='index')
     df.index.name = "Técnico"
-    file_path = f"relatorio_{data.replace('/', '-')}.xlsx"
-    df.to_excel(file_path)
-    await update.message.reply_document(document=open(file_path, "rb"))
+    buffer = BytesIO()
+    df.to_excel(buffer, engine='openpyxl')
+    buffer.seek(0)
+    await update.message.reply_document(document=buffer, filename=f"relatorio_{data.replace('/', '-')}.xlsx")
 
 if __name__ == '__main__':
     app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()

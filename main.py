@@ -6,7 +6,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
 import os
 
-TECNICOS_PRINCIPAIS = ["Gabriel", "Robson", "Maria", "Carlos"]
+TECNICOS_PRINCIPAIS = ["Gabriel","gabriel", "Carlos", "carlos", "Breno","breno", "Wesley", "wesley", "Daniel","daniel", "Phablo","Lazaro", "phablo","lazaro"]
 
 HF_TOKEN = os.getenv("HF_API_KEY")
 HF_MODEL_URL = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"

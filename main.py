@@ -16,7 +16,7 @@ mensagens_processadas = []
 def analisar_com_chatgpt(texto):
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "Você é um assistente que analisa relatórios técnicos de atendimento e classifica informações como: orçamento aprovado, reagendamento, perda de garantia."},
                 {"role": "user", "content": texto}

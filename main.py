@@ -162,6 +162,20 @@ async def exportar_xls(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_document(document=buffer, filename=f"relatorio_{data.replace('/', '-')}.xlsx")
 
 
+
+def extrair_dados(mensagem):
+    dados = {}
+    dados['tecnicos'] = re.findall(r'Tecnico:\s*(.+?)\n', mensagem)
+    dados['os'] = re.findall(r'OS:\s+(\d+)', mensagem)
+    dados['data'] = re.findall(r'Data:\s+(\d+/\d+/\d+)', mensagem)
+    dados['reparo'] = re.findall(r'Reparo:(.+?)\n', mensagem)
+    dados['peca'] = re.findall(r'Peça:(.*)', mensagem)
+
+    analise_ia = analisar_com_huggingface(mensagem)
+    resultado = interpretar_analise(analise_ia, mensagem)
+    dados.update(resultado)
+    return dados
+
 async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text
     dados = extrair_dados(texto)

@@ -65,52 +65,38 @@ def analisar_com_huggingface(texto):
         print("❌ Erro ao chamar Hugging Face:", e)
         return "erro"
 
+
 def interpretar_analise(analise, texto):
-    texto = texto.lower()
-    resposta = analise.lower()
-    
     texto = texto.lower()
     resposta = analise.lower()
 
     # Verificações adicionais por palavras-chave simples
-    if any(word in texto for word in ["orçamento aprovado", "orcamento aprovado", "foi aprovado", "cliente aprovou", "aprovado o orçamento", "orçamento aceito"]):
+    if any(p in texto for p in [
+        "orçamento aprovado", "orcamento aprovado", "foi aprovado",
+        "cliente aprovou", "aprovado o orçamento", "orçamento aceito"
+    ]):
         resposta += " orçamento: sim"
-    if any(word in texto for word in ["reagendado", "reagendado para", "nova visita", "remarcado", "foi reagendado", "mudança de data"]):
+
+    if any(p in texto for p in [
+        "reagendado", "reagendado para", "nova visita", "remarcado",
+        "foi reagendado", "mudança de data"
+    ]):
         resposta += " reagendamento: sim"
-    if any(word in texto for word in ["perda de garantia", "uso incorreto", "garantia excluída", "exclusão de garantia", "sem garantia", "perdeu a garantia"]):
+
+    if any(p in texto for p in [
+        "perda de garantia", "uso incorreto", "garantia excluída",
+        "exclusão de garantia", "sem garantia", "perdeu a garantia"
+    ]):
         resposta += " perda: sim"
 
-
+    resultado = {
         'perda_garantia': 'perda: sim' in resposta and 'garantia' in texto,
         'orc_aprovado': 'orçamento: sim' in resposta and ('aprov' in texto or 'orcamento' in texto),
         'reagendamento': 'reagendamento: sim' in resposta and 'reagend' in texto
     }
 
-def extrair_dados(mensagem):
-    dados = {}
-    dados['tecnicos'] = re.findall(r'Tecnico: (.+?)\n', mensagem)
-    dados['os'] = re.findall(r'OS:\s+(\d+)', mensagem)
-    dados['data'] = re.findall(r'Data:\s+(\d+/\d+/\d+)', mensagem)
-    dados['reparo'] = re.findall(r'Reparo:(.+?)\n', mensagem)
-    dados['peca'] = re.findall(r'Peça:(.*)', mensagem)
-
-    analise_ia = analisar_com_huggingface(mensagem)
-    resultado = interpretar_analise(analise_ia, mensagem)
-    dados.update(resultado)
-    return dados
-
-async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    texto = update.message.text
-    dados = extrair_dados(texto)
-
-    data_msg = dados['data'][0] if dados['data'] else datetime.date.today().strftime('%d/%m/%Y')
-    tecnicos_raw = dados['tecnicos'][0] if dados['tecnicos'] else ''
-    tecnicos_encontrados = [nome.strip() for nome in re.split(r'[,/]', tecnicos_raw) if nome.strip()]
-    tecnico_principal = next((nome.strip().capitalize() for nome in tecnicos_encontrados if nome.lower().strip() in [t.lower() for t in TECNICOS_PRINCIPAIS]), None)
-    if not tecnico_principal:
-        return
-
-    relatorio = relatorio_por_data.setdefault(data_msg, {})
+    return resultado
+)
     tecnico_data = relatorio.setdefault(tecnico_principal, {'ordens': 0, 'orcamentos': 0, 'garantias': 0, 'reagendamentos': 0})
     tecnico_data['ordens'] += 1
     if dados['orc_aprovado']:

@@ -161,6 +161,30 @@ async def exportar_xls(update: Update, context: ContextTypes.DEFAULT_TYPE):
     buffer.seek(0)
     await update.message.reply_document(document=buffer, filename=f"relatorio_{data.replace('/', '-')}.xlsx")
 
+
+async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    texto = update.message.text
+    dados = extrair_dados(texto)
+
+    data_msg = dados['data'][0] if dados['data'] else datetime.date.today().strftime('%d/%m/%Y')
+    tecnicos_raw = dados['tecnicos'][0] if dados['tecnicos'] else ''
+    tecnicos_encontrados = [nome.strip() for nome in re.split(r'[,/]', tecnicos_raw) if nome.strip()]
+    tecnico_principal = next((nome.strip().capitalize() for nome in tecnicos_encontrados if nome.lower().strip() in [t.lower() for t in TECNICOS_PRINCIPAIS]), None)
+    if not tecnico_principal:
+        return
+
+    relatorio = relatorio_por_data.setdefault(data_msg, {})
+    tecnico_data = relatorio.setdefault(tecnico_principal, {'ordens': 0, 'orcamentos': 0, 'garantias': 0, 'reagendamentos': 0})
+    tecnico_data['ordens'] += 1
+    if dados['orc_aprovado']:
+        tecnico_data['orcamentos'] += 1
+    if dados['perda_garantia']:
+        tecnico_data['garantias'] += 1
+    if dados['reagendamento']:
+        tecnico_data['reagendamentos'] += 1
+
+    salvar_relatorio(relatorio_por_data)
+
 if __name__ == '__main__':
     app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), processar_mensagem))

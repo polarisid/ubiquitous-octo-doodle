@@ -1,3 +1,5 @@
+from datetime import datetime
+import pytz
 import re
 import json
 import datetime
@@ -109,7 +111,7 @@ def interpretar_analise(analise, texto):
 
 async def gerar_relatorio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
-    data = args[0] if args else datetime.date.today().strftime('%d/%m/%Y')
+    data = args[0] if args else data_hoje_formatada()
     relatorio = relatorio_por_data.get(data)
     if not relatorio:
         await update.message.reply_text(f"Nenhum atendimento registrado para {data}.")
@@ -126,7 +128,7 @@ async def gerar_relatorio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def exportar_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
-    data = args[0] if args else datetime.date.today().strftime('%d/%m/%Y')
+    data = args[0] if args else data_hoje_formatada()
     relatorio = relatorio_por_data.get(data)
     if not relatorio:
         await update.message.reply_text("Sem dados para exportar.")
@@ -148,7 +150,7 @@ async def exportar_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def exportar_xls(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
-    data = args[0] if args else datetime.date.today().strftime('%d/%m/%Y')
+    data = args[0] if args else data_hoje_formatada()
     relatorio = relatorio_por_data.get(data)
     if not relatorio:
         await update.message.reply_text("Sem dados para exportar.")
@@ -180,7 +182,7 @@ async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE)
     texto = update.message.text
     dados = extrair_dados(texto)
 
-    data_msg = dados['data'][0] if dados['data'] else datetime.date.today().strftime('%d/%m/%Y')
+    data_msg = dados['data'][0] if dados['data'] else data_hoje_formatada()
     tecnicos_raw = dados['tecnicos'][0] if dados['tecnicos'] else ''
     tecnicos_encontrados = [nome.strip() for nome in re.split(r'[,/]', tecnicos_raw) if nome.strip()]
     tecnico_principal = next((nome.strip().capitalize() for nome in tecnicos_encontrados if nome.lower().strip() in [t.lower() for t in TECNICOS_PRINCIPAIS]), None)
@@ -198,6 +200,12 @@ async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE)
         tecnico_data['reagendamentos'] += 1
 
     salvar_relatorio(relatorio_por_data)
+
+
+def data_hoje_formatada():
+    fuso_brasilia = pytz.timezone("America/Sao_Paulo")
+    agora = datetime.now(fuso_brasilia)
+    return agora.strftime('%d/%m/%Y')
 
 if __name__ == '__main__':
     app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()

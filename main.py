@@ -96,7 +96,6 @@ def interpretar_analise(analise, texto):
     }
 
     return resultado
-)
     tecnico_data = relatorio.setdefault(tecnico_principal, {'ordens': 0, 'orcamentos': 0, 'garantias': 0, 'reagendamentos': 0})
     tecnico_data['ordens'] += 1
     if dados['orc_aprovado']:
@@ -169,4 +168,5 @@ if __name__ == '__main__':
     app.add_handler(CommandHandler("pdf", exportar_pdf))
     app.add_handler(CommandHandler("xls", exportar_xls))
     print("🚀 Bot seguro com IA filtrada e modelo Mistral iniciado.")
+    print("✅ Bot iniciado e pronto para receber mensagens...")
     app.run_polling()
